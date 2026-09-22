@@ -29,7 +29,9 @@ jobs:
 
       - name: Install toolchain
         # ruff 固定版本：显式 --select 下规则代码稳定，固定版本仅防未来默认行为漂移。
-        run: pip install "ruff==0.16.1" pytest
+        # pillow：像素比对用例（tests/test_batch46_ui_diff.py + tools/ui-diff.py）需要；
+        # numpy 不装也能跑（ui-diff 有纯 Python 快/慢两条等价路径）。
+        run: pip install "ruff==0.16.1" pytest pillow
 
       - name: Ruff
         # --select E4,E7,E9,F：ruff 文档声明的经典默认集（0.16 起默认集扩大到
