@@ -1,0 +1,451 @@
+/* ============================================================
+   deepdive 手机版 UI 优化 v0.3（对应 APK v1.3.1）
+   ------------------------------------------------------------
+   v0.2 重写说明（历史）：
+   - 旧版 mobile.css 使用的类名（gdEzaW_/hHd-Xa_/pbvGtq_/qSYn7G_ 等）
+     在真实前端构建中不存在，属"死代码"；本版全部替换为
+     0.1.0-rc.6 真实构建中的类名（_rail_1hk8w、_wrap_1ao1y、
+     _answer_d4nqi、_markdown_1nba0、_block_10eou 等）。
+   - 新增：竖屏适配（原 APK 锁横屏）、鲸鱼蓝皮肤、触摸优化。
+   v0.3 新增（v1.3.1，全部为布局/溢出修复，不删功能）：
+   - 消息操作条多行换行（.p-xYUq_actions flex-wrap）
+   - 标题栏让位三条杠（.wSkVaW_header padding-left:52px）
+   - 正文/输入框扩宽（消息区 padding 32→8px、composer 边距 16/8→4px）
+   - 滚动条不占位（scrollbar-gutter:auto）→ 修输入栏按钮重叠
+   - Bash 工具卡片防横向溢出（pre-wrap + word-break）
+   - 后台任务菜单右对齐（.QsffPG_menu right:0）
+   - 设置页单栏（.VOzbGW_panel 上下排列 + 内容可滚动）
+   - 插件按钮定位到三条杠下方（[data-cordis-badge] fixed 52/8，不动 DOM）
+   注意：类名是运行时插件动态注入的 CSS module 类名，改前先确认真实类名。
+   ============================================================ */
+
+:root {
+  /* 触摸友好：点击目标最小 44px */
+  --ds-mobile-tap: 44px;
+  /* 鲸鱼蓝皮肤（与桌面版 deepdive 一致） */
+  --dsw-alias-brand-primary: #4D6BFE !important;
+  --dsw-alias-brand-primary-hover: #5B7CFF !important;
+  --dsw-alias-brand-primary-active: #3D5AE8 !important;
+}
+[data-ds-dark-theme] {
+  --dsw-alias-brand-primary: #4D6BFE !important;
+  --dsw-alias-brand-primary-hover: #5B7CFF !important;
+  --dsw-alias-brand-primary-active: #3D5AE8 !important;
+}
+
+/* ---------- 基础触摸优化 ---------- */
+button,
+[role="button"],
+.icon-btn,
+input,
+select,
+textarea {
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+}
+
+/* 16px 防止聚焦时页面缩放 */
+textarea,
+input[type="text"],
+input[type="search"] {
+  font-size: 16px !important;
+}
+
+/* 触屏滚动条更细 */
+::-webkit-scrollbar {
+  width: 4px;
+  height: 4px;
+}
+::-webkit-scrollbar-thumb {
+  border-radius: 4px;
+}
+
+/* ---------- 真实类名适配 ---------- */
+
+/* 输入框/搜索框：加大点击与输入区 */
+._wrap_1ao1y_1 {
+  height: 44px;
+  min-height: 44px;
+  border-radius: 12px;
+  padding: 0 12px;
+}
+._input_1ao1y_25 {
+  font-size: 16px !important;
+  line-height: 28px;
+}
+
+/* 侧栏图标行：图标项触屏友好 */
+._rail_1hk8w_10 {
+  gap: 12px;
+}
+._item_1hk8w_28 {
+  flex: 0 0 48px;
+  width: 48px;
+  height: 48px;
+}
+._thumbnail_1hk8w_35 {
+  width: 48px;
+  height: 48px;
+  border-radius: 14px;
+}
+
+/* 菜单项：点击区加大 */
+._item_19372_91 {
+  min-height: 40px;
+}
+._label_19372_123 {
+  padding: 6px 4px;
+}
+
+/* 消息/回答内容：移动端全宽阅读，不挤压 */
+._answer_d4nqi_19,
+._markdown_1r4m5_5,
+._content_biesw_99 {
+  max-width: 100% !important;
+}
+
+/* 工具调用卡片：全宽 + 可读性 */
+._block_10eou_7,
+._output_10eou_162,
+._command_10eou_122 {
+  max-width: 100% !important;
+}
+
+/* 表格：窄屏可横向滚动
+   注：类名哈希随前端构建变化（_tableScroll_1nba0 → _tableScroll_1r4m5），
+   改用属性选择器匹配，避免前端更新后失效；同时覆盖前端 md-table-wide
+   的「hover 才显示滚动条」设计——触屏设备没有 hover，滚动条永远隐藏
+   导致宽表格无法横向滑动。移动端始终允许横向滚动。 */
+[class*="tableScroll"],
+.md-table-wide {
+  max-width: 100% !important;
+  overflow-x: auto !important;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior-x: contain;
+  padding-bottom: 0 !important;
+}
+
+/* 图片画廊：间距收紧 */
+._gallery_nrncx_1 {
+  gap: 8px;
+}
+
+/* 空状态 / 引导卡：宽度自适应 */
+._illustration_rcb0a_39,
+._card_9gj4p_13 {
+  max-width: 100% !important;
+}
+
+/* ============ 竖屏专项适配 ============ */
+@media (orientation: portrait) {
+  html,
+  body {
+    font-size: 15.5px;
+  }
+
+  /* 会话/回答内容宽度：竖屏给足空间 */
+  ._answer_d4nqi_19,
+  ._markdown_1r4m5_5 {
+    width: 100%;
+    max-width: 100% !important;
+  }
+
+  /* 工具卡片、代码块：竖屏不横向溢出 */
+  ._block_10eou_7,
+  ._output_10eou_162,
+  ._content_biesw_99 {
+    width: 100% !important;
+    max-width: 100% !important;
+  }
+
+  /* 底部输入区：触摸目标更大、更易点击 */
+  ._wrap_1ao1y_1 {
+    height: 48px;
+    border-radius: 14px;
+  }
+  ._input_1ao1y_25 {
+    font-size: 16px !important;
+  }
+
+  /* 侧栏图标：竖屏下略收紧，避免挤占内容 */
+  ._rail_1hk8w_10 {
+    gap: 8px;
+  }
+  ._item_1hk8w_28 {
+    flex: 0 0 44px;
+    width: 44px;
+    height: 44px;
+  }
+  ._thumbnail_1hk8w_35 {
+    width: 44px;
+    height: 44px;
+  }
+}
+
+/* ============ 设置页移动端优化（基于真机截图） ============ */
+@media (max-width: 1100px) {
+  /* 左侧设置菜单：项更高、标签更清晰 */
+  ._item_19372_91 {
+    min-height: 46px;
+  }
+  ._itemLabel_19372_173 {
+    font-size: 15px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  ._label_19372_123 {
+    padding: 8px 6px;
+  }
+  ._separator_19372_81 {
+    margin: 6px 0;
+  }
+
+  /* 设置说明文字：行距舒展，不再挤成竖排 */
+  p,
+  li,
+  dd,
+  dt {
+    line-height: 1.75;
+  }
+
+  /* 顶部操作按钮（如"打开配置文件"）更大更好点 */
+  ._button_kz6gm_4 {
+    min-height: 40px;
+    padding: 8px 14px;
+  }
+}
+
+/* ============ 横屏矮屏（窄高度）优化 ============ */
+@media (max-height: 520px) and (orientation: landscape) {
+  html,
+  body {
+    font-size: 14.5px;
+  }
+  ._rail_1hk8w_10 {
+    gap: 8px;
+  }
+  ._item_1hk8w_28,
+  ._thumbnail_1hk8w_35 {
+    flex-basis: 44px;
+    width: 44px;
+    height: 44px;
+  }
+}
+
+/* ============ 窄屏：AI 消息操作条分多行 ============
+   MessageIconActions（复制/赞踩/分支/时间/耗时/token）原为一行
+   flex（height:28px、文字 nowrap），窄屏下会伸出屏幕；
+   改为允许换行：时间/耗时为整体单元，放不下就折到下一行。
+   !important 是为了压过插件运行时注入的同名规则（注入顺序在后）。 */
+@media (max-width: 640px) {
+  .p-xYUq_actions {
+    flex-wrap: wrap !important;
+    height: auto !important;
+    min-height: 28px;
+    row-gap: 2px;
+  }
+  .p-xYUq_timeStart,
+  .p-xYUq_timeEnd {
+    white-space: normal !important;
+  }
+}
+
+/* ============ 窄屏：会话标题栏给左上角三条杠让位 ============
+   聊天区顶部 header（会话标题/面包屑）默认左 padding 20px，
+   会被 fixed 在左上角（8px 起、宽 36px）的三条杠按钮盖住；
+   窄屏下把标题栏左内边距加大，让标题从三条杠右侧开始。 */
+@media (max-width: 640px) {
+  .wSkVaW_header {
+    padding-left: 52px !important;
+  }
+}
+
+/* ============ 窄屏：正文与输入框扩宽 ============
+   桌面端为三列布局预留了大量左右内缩（消息区 padding 32px、
+   输入框 clearance 16+inset 8 = 24px），窄屏（竖屏/手机横屏）下
+   白白浪费宽度。这里把内缩收小，让正文与输入栏更宽；
+   同时滚动条不预留占位（避免输入栏被压窄导致按钮重叠）。 */
+@media (max-width: 640px) {
+  /* 正文消息区：左右内缩 32px → 8px */
+  .Md3f7G_scroll {
+    padding-left: 8px !important;
+    padding-right: 8px !important;
+  }
+  /* 输入框 dock 更宽：clearance/inset 收小 */
+  .wSkVaW_root {
+    --dsh-composer-side-clearance: 4px !important;
+    --dsh-composer-dock-inset: 4px !important;
+  }
+  /* 滚动条不占宽度，避免压缩输入栏（有会话时按钮重叠的根因） */
+  .wSkVaW_scrollBody,
+  .Md3f7G_scroll {
+    scrollbar-gutter: auto !important;
+  }
+  /* 工具调用卡片：不贴屏幕左右边缘 */
+  ._block_10eou_7,
+  ._output_10eou_162,
+  ._content_biesw_99 {
+    margin-left: 2px !important;
+    margin-right: 2px !important;
+  }
+}
+
+/* ============ 窄屏：输入栏右侧按钮保持一行且不重叠 ============
+   InputBar 的 trailing 一行排开（审核模式按钮 + 模型名 + token 计量），
+   窄屏下直接换行会让审核按钮掉到下一行、输入框变高；
+   这里保持一行（nowrap），通过压缩模型名宽度与按钮间距避免重叠。 */
+@media (max-width: 640px) {
+  .uV2eYG_trailing,
+  .uV2eYG_modes,
+  .uV2eYG_tools {
+    flex-wrap: nowrap !important;
+  }
+  .uV2eYG_trailing,
+  .uV2eYG_modes {
+    gap: 6px !important;
+  }
+  .uV2eYG_select {
+    max-width: 26vw !important;
+    font-size: 12px !important;
+  }
+}
+
+/* ============ 窄屏：Bash 工具卡片防横向溢出 ============
+   终端卡片里的命令文本/输出行 white-space:pre 不换行，
+   窄屏下会把卡片撑出屏幕；改为可换行（pre-wrap）。 */
+@media (max-width: 640px) {
+  ._command_10eou_122,
+  ._line_10eou_186 {
+    white-space: pre-wrap !important;
+    word-break: break-all;
+  }
+  ._block_10eou_7 {
+    max-width: 100% !important;
+    box-sizing: border-box;
+  }
+}
+
+/* ============ 插件按钮（mobile.js 注入，三条杠下方） ============
+   窄屏下侧边栏里的插件入口不易触达，改为左上角三条杠下方的
+   图标按钮（fixed 定位由 JS 设置）；点击打开插件管理面板。 */
+.dsh-mobile-plugin-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  border: none;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--dsw-alias-label-secondary, #8b98a9);
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+}
+.dsh-mobile-plugin-btn:active {
+  background: var(--dsw-alias-interactive-bg-hover, rgba(255, 255, 255, 0.08));
+  color: var(--dsw-alias-label-primary, #e6edf3);
+}
+.dsh-mobile-plugin-btn svg {
+  display: block;
+  width: 16px;
+  height: 16px;
+}
+
+/* ============ 窄屏：插件按钮定位到三条杠下方 ============
+   核心渲染的插件按钮（header.utilities 里的 [data-cordis-badge]，
+   单一实例）默认在右上角；CSS position:fixed 挪到左上角三条杠
+   正下方。不动 DOM（按钮留在 #root 内，React 事件委托才有效），
+   只改样式；隐藏宽版按钮文字，只留图标。 */
+@media (max-width: 1024px) {
+  .wSkVaW_headerUtilities [data-cordis-badge] {
+    position: fixed !important;
+    top: 52px !important;
+    left: 8px !important;
+    width: 32px !important;
+    height: 32px !important;
+    margin: 0 !important;
+    padding: 0 6px !important;
+    gap: 4px !important;
+    border-radius: 8px !important;
+    font-size: 12px !important;
+    z-index: 1000 !important;
+    background: transparent !important;
+  }
+  .wSkVaW_headerUtilities [data-cordis-badge] > span {
+    display: none !important;
+  }
+}
+
+/* ============ 窄屏：后台任务菜单不超出屏幕 ============
+   后台任务下拉（.QsffPG_menu）定位 left:0，按钮在右侧时面板
+   向右延伸超出屏幕（任务名被推到屏外）；改为右对齐向左展开。 */
+@media (max-width: 640px) {
+  .QsffPG_menu {
+    left: auto !important;
+    right: 0 !important;
+    max-width: calc(100vw - 24px) !important;
+  }
+}
+
+/* ============ 蓝色大肥鱼（mobile.js 注入的替换 SVG，批次 16 / F4） ============
+   mobile.js 把官方墨鲸（侧栏 brandMark/railMark + 会话 hero 鱼标）隐藏后，
+   在原 svg 旁插入肥鱼内联 SVG（class=dsh-mobile-fish，尺寸跟随原元素，
+   preserveAspectRatio=xMidYMid meet 居中缩放）。原鲸鱼容器均为 inline-flex
+   居中，这里只需保证肥鱼不占多余空间、不拦截点击（品牌按钮/hero 交互不受
+   影响）。形状单一事实源：.local/b16-fish.svg（本文件不做任何形变）。 */
+.dsh-mobile-fish {
+  display: block;
+  flex: none;
+  pointer-events: none;
+}
+
+/* ============ 窄屏：设置页单栏适配 ============
+   设置页（.VOzbGW_panel）默认 800px 左右两栏（nav 188px + 内容），
+   竖屏下内容列被挤到一百多像素、几乎不可用；
+   改为上下排列：导航横排（可横向滚动）在顶部，内容区全宽在下。 */
+@media (max-width: 640px) {
+  .VOzbGW_panel {
+    flex-direction: column !important;
+    width: 100% !important;
+    max-width: calc(100vw - 16px) !important;
+    height: min(800px, calc(100vh - 32px)) !important;
+    border-radius: 16px !important;
+  }
+  .VOzbGW_nav {
+    width: 100% !important;
+    flex-direction: row !important;
+    align-items: center !important;
+    gap: 8px !important;
+    padding: 10px 8px 0 !important;
+    overflow-x: auto !important;
+  }
+  .VOzbGW_navTitle {
+    flex: none !important;
+    white-space: nowrap !important;
+  }
+  .VOzbGW_navList {
+    flex-direction: row !important;
+    gap: 4px !important;
+  }
+  .VOzbGW_navCell {
+    flex: none !important;
+    white-space: nowrap !important;
+    height: 36px !important;
+    padding: 6px 12px !important;
+  }
+  .VOzbGW_content {
+    flex: 1 !important;
+    overflow-y: auto !important;
+    min-height: 0 !important;
+  }
+}
+
+/* ==== 批次 17t：隐藏侧栏开合按钮的 Tooltip 气泡 ====
+   来源：@deepseek-ai/dsh-client-ui-sidebar Tooltip 组件（「打开/收起侧边栏」标签，
+   delayMs 500 悬停提示）。触屏无悬停语义，每次点击闪现气泡纯打扰（用户判定去除）。
+   选择器 span[role="tooltip"] 为 ARIA 专属角色，全前端唯一（grep 证实），零误伤。
+   display:none 直接移除视觉与无障碍树——按钮本体 aria-label 语义不受影响。 */
+span[role="tooltip"] { display: none !important; }

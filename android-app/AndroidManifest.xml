@@ -1,0 +1,205 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    package="com.deepseek.harness"
+    android:versionCode="28"
+    android:versionName="1.9.0-dsh0.1.5rc1">
+
+    <uses-sdk android:minSdkVersion="24" android:targetSdkVersion="28" />
+
+    <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" />
+    <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />
+    <uses-permission android:name="android.permission.MANAGE_EXTERNAL_STORAGE"
+        tools:ignore="ScopedStorage" />
+    <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW" />
+    <uses-permission android:name="android.permission.WRITE_SETTINGS" />
+    <uses-permission android:name="android.permission.PACKAGE_USAGE_STATS"
+        tools:ignore="ProtectedPermissions" />
+    <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES" />
+    <uses-permission android:name="android.permission.REQUEST_IGNORE_BATTERY_OPTIMIZATIONS" />
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+    <!-- 批次55-A1：Android 16 Live Updates（原生实况窗 / 灵动胶囊「应用服务」）准入权限。
+         prot=normal|appop，安装即授予；是否真被系统晋升由系统侧判定，见
+         com.deepseek.harness.PromotedProgressNotifier。不改变 targetSdk。 -->
+    <uses-permission android:name="android.permission.POST_PROMOTED_NOTIFICATIONS" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+    <!-- 批次6：PARTIAL_WAKE_LOCK（chroot 后台作业保活，/wakelock 路由；单次上限 30 分钟防泄漏） -->
+    <uses-permission android:name="android.permission.WAKE_LOCK" />
+    <!-- 定时任务：精确闹钟（Android 12+ 需要；setAlarmClock 不受此权限限制，双保险） -->
+    <uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM" />
+    <!-- 批次47：助手浮层保活——开机/更新后自愈拉回（BootReceiver） -->
+    <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
+    <uses-permission android:name="moe.shizuku.manager.permission.API_V23" />
+
+    <application
+        android:label="@string/app_name"
+        android:icon="@drawable/ic_launcher"
+        android:allowBackup="true"
+        android:usesCleartextTraffic="true"
+        android:hardwareAccelerated="true">
+
+        <meta-data
+            android:name="moe.shizuku.client.V3_SUPPORT"
+            android:value="true" />
+
+        <activity
+            android:name=".MainActivity"
+            android:launchMode="singleTask"
+            android:exported="true"
+            android:screenOrientation="unspecified"
+            android:configChanges="orientation|screenSize|keyboardHidden|screenLayout|smallestScreenSize|uiMode|density|navigation"
+            android:theme="@android:style/Theme.Black.NoTitleBar.Fullscreen">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+            <!-- v1.8.5 系统分享接入：任意 App「分享 → DeepSeek Harness」直接发给 AI 处理 -->
+            <intent-filter>
+                <action android:name="android.intent.action.SEND" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <data android:mimeType="text/plain" />
+                <data android:mimeType="image/*" />
+            </intent-filter>
+            <intent-filter>
+                <action android:name="android.intent.action.SEND_MULTIPLE" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <data android:mimeType="image/*" />
+            </intent-filter>
+            <!-- 批次51 P1-F3：静态快捷方式（系统「快捷功能」列表 + 桌面长按菜单的数据源） -->
+            <meta-data
+                android:name="android.app.shortcuts"
+                android:resource="@xml/shortcuts" />
+        </activity>
+
+        <!-- 前台保活服务：引擎运行期间常驻通知栏，挂后台不被杀 -->
+        <service
+            android:name=".EngineService"
+            android:exported="false"
+            android:foregroundServiceType="dataSync" />
+
+        <!-- 定时任务闹钟接收器（⑥）：AI 设置定时后由系统闹钟唤醒，即使 App 被杀也能触发 -->
+        <receiver
+            android:name=".AlarmReceiver"
+            android:exported="false" />
+
+        <!-- 批次47：助手浮层保活——开机 / 覆盖安装（更新）后把它拉回来。
+             用户主动关过时（dsh_prefs/ball_autostart=false）只记录、不拉起。 -->
+        <receiver
+            android:name=".BootReceiver"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.intent.action.BOOT_COMPLETED" />
+                <action android:name="android.intent.action.MY_PACKAGE_REPLACED" />
+                <action android:name="android.intent.action.QUICKBOOT_POWERON" />
+                <action android:name="com.htc.intent.action.QUICKBOOT_POWERON" />
+            </intent-filter>
+        </receiver>
+
+        <!-- v1.8.4 审批门：高危操作确认通知的「允许/拒绝」按钮回调 -->
+        <!-- 批次85-R4：事件触发器 —— 包安装/卸载/替换（Android 8+ 隐式广播例外名单，可清单注册；
+             App 进程未运行时也会被拉起 → 交给 TriggerEngine 匹配并执行）。
+             运行期事件（电源/电量/亮灭屏/耳机/网络）由 TriggerEngine.ensureRegistered 动态注册。 -->
+        <receiver
+            android:name=".TriggerReceiver"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.intent.action.PACKAGE_ADDED" />
+                <action android:name="android.intent.action.PACKAGE_REMOVED" />
+                <action android:name="android.intent.action.PACKAGE_REPLACED" />
+                <action android:name="android.intent.action.MY_PACKAGE_REPLACED" />
+                <data android:scheme="package" />
+            </intent-filter>
+        </receiver>
+        <receiver
+            android:name=".ConfirmReceiver"
+            android:exported="false" />
+
+        <!-- v1.8.5 通知读取：AI 可查询手机最近通知（用户需在系统设置授予通知读取权限） -->
+        <service
+            android:name=".NotificationListener"
+            android:exported="false"
+            android:label="DeepSeek Harness 通知读取"
+            android:permission="android.permission.BIND_NOTIFICATION_LISTENER_SERVICE">
+            <intent-filter>
+                <action android:name="android.service.notification.NotificationListenerService" />
+            </intent-filter>
+        </service>
+
+        <!-- 小鲸鱼悬浮窗（含引擎状态显示） -->
+                <!-- 批次42：下拉通知栏快捷磁贴（一键唤起小鲸鱼助手） -->
+        <service
+            android:name=".AssistantTileService"
+            android:label="小鲸鱼助手"
+            android:icon="@drawable/ic_launcher"
+            android:permission="android.permission.BIND_QUICK_SETTINGS_TILE"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.service.quicksettings.action.QS_TILE" />
+            </intent-filter>
+        </service>
+
+        <!-- 批次42：系统全局划词菜单（长按选中文字弹出小鲸鱼处理） -->
+        <activity
+            android:name=".ProcessTextActivity"
+            android:label="小鲸鱼处理"
+            android:exported="true"
+            android:excludeFromRecents="true"
+            android:noHistory="true"
+            android:theme="@android:style/Theme.Translucent.NoTitleBar">
+            <intent-filter>
+                <action android:name="android.intent.action.PROCESS_TEXT" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <data android:mimeType="text/plain" />
+            </intent-filter>
+        </activity>
+
+        <!-- 批次42/51：系统助手唤起入口（长按导航条/手势/AI键直达），配置 excludeFromRecents 确保多任务后台完全隐藏 -->
+        <!-- 批次52 修复：移除 noHistory / autoRemoveFromRecents / taskAffinity——
+             真机取证发现它们会让静态快捷方式解析退化为 MainActivity（dumpsys shortcut 的
+             activity 字段实测为 MainActivity，导致 AI 键短按不再弹出灵动助手）。
+             仅保留 excludeFromRecents，配合代码侧 finishAndRemoveTask() 保证不残留多任务卡片。 -->
+        <activity
+            android:name=".AssistActivity"
+            android:label="灵动助手弹窗"
+            android:icon="@drawable/ic_fish_blue"
+            android:exported="true"
+            android:launchMode="singleInstance"
+            android:excludeFromRecents="true"
+            android:theme="@android:style/Theme.Translucent.NoTitleBar">
+            <intent-filter>
+                <action android:name="android.intent.action.ASSIST" />
+                <category android:name="android.intent.category.DEFAULT" />
+            </intent-filter>
+        </activity>
+
+        <service
+            android:name=".OverlayService"
+            android:exported="false" />
+        <service android:name=".VscreensPreviewService" android:exported="false"/>
+
+        <!-- 批次47（策略调整）：已移除 VoiceInteractionService 体系（源头接管系统助手）。
+             用户明确不与 YOYO/系统助手绑定，产品只保留助手浮层的保活与启动。 -->
+        <!-- v1.7 无障碍服务：AI 读屏 + 模拟操作 + 无障碍截图（用户需在系统设置开启） -->
+        <service
+            android:name=".AccessibilityService"
+            android:exported="false"
+            android:label="DeepSeek Harness 屏幕助手"
+            android:permission="android.permission.BIND_ACCESSIBILITY_SERVICE">
+            <intent-filter>
+                <action android:name="android.accessibilityservice.AccessibilityService" />
+            </intent-filter>
+            <meta-data
+                android:name="android.accessibilityservice"
+                android:resource="@xml/accessibility_config" />
+        </service>
+
+        <provider
+            android:name="rikka.shizuku.ShizukuProvider"
+            android:authorities="com.deepseek.harness.shizuku"
+            android:multiprocess="false"
+            android:enabled="true"
+            android:exported="true"
+            android:permission="android.permission.INTERACT_ACROSS_USERS_FULL" />
+    </application>
+</manifest>

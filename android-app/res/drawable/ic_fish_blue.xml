@@ -1,0 +1,100 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 批次16u 蓝色大肥鱼（单一事实源 .local/b16-fish.svg，viewBox 0 0 120 96，头朝左尾朝右）。
+     形状逐部件 1:1 转换，不改形。工具链说明：本项目 build.sh 用 aapt（v1），aapt1 无法编译
+     VectorDrawable 渐变（渐变 complex-color 需 aapt2 内联 <aapt:attr><gradient>），因此身体
+     渐变 #6FB6FF→#2E6FDB 按线性插值离散为 8 段不透明色带（pathData 由脚本生成并校验：每段
+     边界点均在椭圆 (56,52,rx40,ry30) 上、各段首尾相接无缝、相邻带重叠 0.35 防抗锯齿接缝），
+     色带并集 == 原椭圆，形状零改变。旋转椭圆（侧鳍）用圆弧的 x 轴旋转参数直接表达：
+     长轴端点 = 圆心 ± 9*(cos25°,-sin25°) = (37.84,69.8)/(54.16,62.2)，弦长 (16.31,-7.61)。 -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="40dp"
+    android:height="32dp"
+    android:viewportWidth="120"
+    android:viewportHeight="96">
+
+    <!-- 气泡：circle(16,26,r3) 白 @0.4 / circle(9,17,r2) 白 @0.35 -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:fillAlpha="0.4"
+        android:pathData="M13,26 a3,3 0 1 0 6,0 a3,3 0 1 0 -6,0 Z" />
+    <path
+        android:fillColor="#FFFFFF"
+        android:fillAlpha="0.35"
+        android:pathData="M7,17 a2,2 0 1 0 4,0 a2,2 0 1 0 -4,0 Z" />
+
+    <!-- 尾鳍（右）：双叶圆角三角，#8CC8FF，描边 #2B5FB8@0.35 宽1.5 -->
+    <path
+        android:fillColor="#8CC8FF"
+        android:strokeColor="#2B5FB8"
+        android:strokeAlpha="0.35"
+        android:strokeWidth="1.5"
+        android:pathData="M92,50 Q112,34 116,28 Q119,44 114,52 Q118,62 112,74 Q106,62 90,54 Z" />
+
+    <!-- 背鳍（上）：#8CC8FF，描边 #2B5FB8@0.35 宽1.5 -->
+    <path
+        android:fillColor="#8CC8FF"
+        android:strokeColor="#2B5FB8"
+        android:strokeAlpha="0.35"
+        android:strokeWidth="1.5"
+        android:pathData="M42,23 Q56,10 72,21 Q58,26 47,31 Z" />
+
+    <!-- 胖身体：椭圆 (56,52) rx40 ry30，渐变 #6FB6FF→#2E6FDB 离散为 8 段色带（上亮下深） -->
+    <path
+        android:fillColor="#6BB2FD"
+        android:pathData="M56,22 A40,30 0 0 0 29.54,29.5 L82.46,29.5 A40,30 0 0 0 56,22 Z" />
+    <path
+        android:fillColor="#63A9F8"
+        android:pathData="M30.08,29.15 A40,30 0 0 0 21.36,37 L90.64,37 A40,30 0 0 0 81.92,29.15 Z" />
+    <path
+        android:fillColor="#5BA0F4"
+        android:pathData="M21.63,36.65 A40,30 0 0 0 17.27,44.5 L94.73,44.5 A40,30 0 0 0 90.37,36.65 Z" />
+    <path
+        android:fillColor="#5397EF"
+        android:pathData="M17.39,44.15 A40,30 0 0 0 16,52 L96,52 A40,30 0 0 0 94.61,44.15 Z" />
+    <path
+        android:fillColor="#4A8EEB"
+        android:pathData="M16,51.65 A40,30 0 0 0 17.27,59.5 L94.73,59.5 A40,30 0 0 0 96,51.65 Z" />
+    <path
+        android:fillColor="#4285E6"
+        android:pathData="M17.15,59.15 A40,30 0 0 0 21.36,67 L90.64,67 A40,30 0 0 0 94.85,59.15 Z" />
+    <path
+        android:fillColor="#3A7CE2"
+        android:pathData="M21.09,66.65 A40,30 0 0 0 29.54,74.5 L82.46,74.5 A40,30 0 0 0 90.91,66.65 Z" />
+    <path
+        android:fillColor="#3273DD"
+        android:pathData="M29.02,74.15 A40,30 0 0 0 56,82 L56,82 A40,30 0 0 0 82.98,74.15 Z" />
+
+    <!-- 白肚皮：椭圆 (52,64) rx30 ry16，#D6E9FF @0.85 -->
+    <path
+        android:fillColor="#D6E9FF"
+        android:fillAlpha="0.85"
+        android:pathData="M22,64 a30,16 0 1 0 60,0 a30,16 0 1 0 -60,0 Z" />
+
+    <!-- 侧鳍：椭圆 (46,66) rx9 ry6 旋转 -25°，#8CC8FF，描边 #2B5FB8@0.35 宽1.2
+         （换算见文件头注释：长轴端点 (37.84,69.8)/(54.16,62.2)，相对弦 (16.31,-7.61)） -->
+    <path
+        android:fillColor="#8CC8FF"
+        android:strokeColor="#2B5FB8"
+        android:strokeAlpha="0.35"
+        android:strokeWidth="1.2"
+        android:pathData="M37.84,69.8 a9,6 -25 1 0 16.31,-7.61 a9,6 -25 1 0 -16.31,7.61 Z" />
+
+    <!-- 眼睛：白圆(34,44,r7) + 瞳(32,45,r4)#16294D + 高光(30,41,r1.8)白 -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M27,44 a7,7 0 1 0 14,0 a7,7 0 1 0 -14,0 Z" />
+    <path
+        android:fillColor="#16294D"
+        android:pathData="M28,45 a4,4 0 1 0 8,0 a4,4 0 1 0 -8,0 Z" />
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M28.2,41 a1.8,1.8 0 1 0 3.6,0 a1.8,1.8 0 1 0 -3.6,0 Z" />
+
+    <!-- 微笑嘴：M22,57 Q29,63 37,60 描边 #1B3A73 宽2 圆帽 -->
+    <path
+        android:fillColor="#00000000"
+        android:strokeColor="#1B3A73"
+        android:strokeWidth="2"
+        android:strokeLineCap="round"
+        android:pathData="M22,57 Q29,63 37,60" />
+</vector>

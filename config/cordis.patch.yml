@@ -1,0 +1,151 @@
+# Android 兼容性 patch
+# 已修复：subprocess-local（node-pty → child_process）、attachment-local（sharp → 纯JS头解析）
+# 禁用依赖无法编译原生模块的插件（Pi-AI 模型适配器、sandbox、bash-sandbox）
+# 用 bash-local（仅依赖 subprocess，已加 sandboxMode 兼容）替代 bash-sandbox 提供 ctx.shell
+# 批次23：llm-pi-ai 重新启用——0.1.5-rc.1 依赖树已纯 JS（@earendil-works/pi-ai 无原生模块，
+# 旧禁用理由系 0.1.1 时代遗留），且 Models 页「添加自定义提供方」整链路以本插件为宿主
+# （settings namespace llm-pi-ai 未注册 → 按钮不渲染 + 服务端拒写）。
+# 保留 bare id 行：MainActivity.ensurePatchConfig 校验要求文件含 llm-pi-ai 字样。
+- id: llm-pi-ai
+- id: sandbox
+  disabled: true
+- id: bash-sandbox
+  disabled: true
+# rc.2 新增：PowerShell 沙箱（Android 无 pwsh，禁用）。
+# 注意：树里该插件的条目 id 是 pwsh-sandbox（不是 dsh-pwsh-sandbox）——
+# v1.6.5 起 id 不匹配导致禁用不生效，引擎启动时 pwsh-sandbox 等待 sandbox 服务
+# （sandbox 被禁用）→ pending → 启动失败、node 反复崩溃。v1.7.1 修正。
+- id: pwsh-sandbox
+  disabled: true
+# 会话日志导出按钮（右上角 session log，下载 ZIP）：移动端用不上，禁用留出空间
+- id: session-log-download
+  disabled: true
+- id: permission
+  config:
+    presets:
+      workspace-write:
+        sandbox: workspace-write
+        approval: ask
+      danger-full-access:
+        sandbox: danger-full-access
+        approval: never
+    defaultPreset: danger-full-access
+- insert:
+    - id: bash-local
+      name: '@deepseek-ai/dsh-bash-local'
+      config:
+        # AI 工作区（可选）：MainActivity 选择外部共享存储目录后通过 DSH_WORKSPACE 环境变量传入；
+        # 未设置时回退引擎进程目录。这样 bash/文件操作的工作根目录 = 用户选的文件夹。
+        cwd: !!js (process.env.DSH_WORKSPACE || process.cwd())
+        timeoutMs: 60000
+    - id: tool-shizuku
+      name: '@deepseek-ai/dsh-tool-shizuku'
+    - id: tool-android
+      name: '@deepseek-ai/dsh-tool-android'
+    # v1.7：无障碍屏幕助手（读屏/点击/输入/滚动/截图，需用户在系统设置开启无障碍服务）
+    - id: tool-accessibility
+      name: '@deepseek-ai/dsh-tool-accessibility'
+    # Command Code Go 订阅 provider（第三方 @jiesou/dsh-commandcode-go-provider@0.1.11，
+    # 纯 JS cordis 插件随包烧录：包体物化于 compatibility overlay 的
+    # node_modules/@jiesou/，prepare/refresh 时拷进 dshroot/lib/node_modules；无运行时
+    # dependencies（仅 peer 指向 DSH 自身组件）。凭据 COMMANDCODE_API_KEY 在 Models 页
+    # 该 provider 卡片填入。
+    - id: commandcode-go-provider
+      name: '@jiesou/dsh-commandcode-go-provider'
+    - id: model-router
+      name: '@jiesou/dsh-model-router'
+    # CodeArts(华为) + CodeBuddy(国内/国际) 认证与 LLM provider（第三方 dsh-codearts-auth
+    # v0.1.0，MIT，上游 github.com/solilk115-arch/dsh-codearts-auth）。
+    # 纯 TypeScript 包、零原生依赖（仅 jose + schemastery，运行树已有 jose），随包烧录：
+    # 源码树外 pnpm build + pnpm build:client 产出 lib/（含 lib/client/jet-hub.js UI），
+    # 编译产物提交进 compatibility overlay 的 node_modules/dsh-codearts-auth/；
+    # prepare/refresh 时经 apply_profile_vendor_overlay 物化进 profile 树
+    # （包名无 scope，不能被 @jiesou 循环覆盖，故在函数内白名单单列）。
+    # 接口兼容性已实测：其编译期依赖 0.1.2-rc.1 与本项目运行时 0.1.5-rc.1 之间
+    # dsh-credentials/dsh-commands 导出面零差异、dsh-llm 纯增量（新增 15 项无移除），
+    # 且在本项目 dshroot 树上 ctx.plugin() 注册成功（inject: credentials/commands/llm/connection）。
+    # 凭据在 Models 页 CodeArts / CodeBuddy 卡片内登录获取。
+    - id: codearts-auth
+      name: 'dsh-codearts-auth'
+    # Google Antigravity (agy) OAuth 认证 + 模型接入（第三方 dsh-agy v0.2.6，MIT，
+    # 上游 github.com/chaos-03x/dsh-agy，**本项目已改造其主密钥存储**）。
+    # 依赖链：proper-lockfile（账号池文件锁）+ graceful-fs + signal-exit（**必须 v3**，
+    # v4 移除默认导出会报 onExit is not a function），三包随包物化。
+    # 改造说明（批次31）：原版把主密钥以顶层键 AGY_MASTER_KEY 追加进 .credentials.yaml，
+    # 而 DSH 0.1.5-rc.1 的 dsh-credentials-local 对未知顶层键严格拒绝
+    # （Everything is rejected rather than skipped），会中断引擎启动并导致 App 重启循环。
+    # 现改为写入插件自有文件 <dshHome>/agy-master-key.json(0600)，与内核凭据文档完全隔离；
+    # loadMasterKey 仍兼容读取旧 YAML 位置以便平滑迁移。
+    # 两个 id：dsh-agy（LLM 适配器，inject=llm）须先于 dsh-agy-web（/agy Web UI，inject=llm,webServer）。
+    - id: dsh-agy
+      name: 'dsh-agy'
+    - id: dsh-agy-web
+      name: 'dsh-agy/web'
+
+- id: connection
+  inject: [webRuntime, webServer]
+- insert:
+    - id: mnemon-bundle
+      name: 'cordis:group'
+      config:
+        - id: mnemon
+          name: 'dsh-mnemon'
+          config:
+            routingGuidance: true
+            lifecycleEnabled: true
+            recallMode: guided
+            writebackMode: guided
+            idleReviewMs: 30000
+            tabEnabled: true
+            writeEnabled: true
+            remoteAccess: read-only
+            timeoutMs: 10000
+            defaultRecallLimit: 10
+            embedding:
+              enabled: false
+              endpoint: http://localhost:11434
+              model: nomic-embed-text
+            recallQuality:
+              policy: strict-v1
+              lowScoreThreshold: 0.25
+              highScoreThreshold: 0.6
+              candidateMultiplier: 3
+              maxMediumResults: 4
+              maxUnknownResults: 2
+        - id: mnemon-source-runtime
+          name: 'dsh-mnemon-source-runtime'
+        - id: mnemon-source-documents
+          name: 'dsh-mnemon-source-documents'
+        - id: mnemon-source-memory-spaces
+          name: 'dsh-mnemon-source-memory-spaces'
+          config:
+            providers:
+              - use: dsh-mnemon-provider-mnemon-native
+                instanceId: mnemon-native
+              - use: dsh-mnemon-provider-openviking
+                instanceId: openviking
+              - use: dsh-mnemon-provider-honcho
+                instanceId: honcho
+              - use: dsh-mnemon-provider-mem0
+                instanceId: mem0
+              - use: dsh-mnemon-provider-hindsight
+                instanceId: hindsight
+              - use: dsh-mnemon-provider-holographic
+                instanceId: holographic
+              - use: dsh-mnemon-provider-retaindb
+                instanceId: retaindb
+              - use: dsh-mnemon-provider-byterover
+                instanceId: byterover
+              - use: dsh-mnemon-provider-supermemory
+                instanceId: supermemory
+        - id: mnemon-strategy-default-three-tier
+          name: 'dsh-mnemon-strategy-default-three-tier'
+        - id: mnemon-strategy-auto-capture
+          name: 'dsh-mnemon-strategy-auto-capture'
+          disabled: true
+        - id: mnemon-strategy-light-context
+          name: 'dsh-mnemon-strategy-light-context'
+          disabled: true
+        - id: mnemon-strategy-scoped
+          name: 'dsh-mnemon-strategy-scoped'
+          disabled: true

@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  批次51 P1-F3：静态快捷方式。
+  荣耀 AI 键「快捷服务 → 快捷功能」列表的数据源是 LauncherApps$ShortcutQuery / getShortcuts，
+  即应用声明的静态快捷方式；此前本包未声明任何快捷方式，故该列表里永远看不到「灵动助手弹窗」。
+  这里补一个直达灵动助手的入口（也等价于一个绕过厂商白名单的保底唤起路径）。
+-->
+<shortcuts xmlns:android="http://schemas.android.com/apk/res/android">
+    <shortcut
+        android:shortcutId="assistant"
+        android:enabled="true"
+        android:icon="@drawable/ic_fish_blue"
+        android:shortcutShortLabel="@string/shortcut_assistant_short"
+        android:shortcutLongLabel="@string/shortcut_assistant_long">
+        <intent
+            android:action="android.intent.action.MAIN"
+            android:targetPackage="com.deepseek.harness"
+            android:targetClass="com.deepseek.harness.AssistActivity">
+            <category android:name="android.intent.category.LAUNCHER" />
+        </intent>
+    </shortcut>
+</shortcuts>

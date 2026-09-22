@@ -1,0 +1,5 @@
+//#region src/contracts.ts
+const DOCUMENTS_VERSION = 1;
+const DOCUMENTS_ACTIVE_LIMIT_BYTES = 10485760;
+//#endregion
+export { DOCUMENTS_ACTIVE_LIMIT_BYTES, DOCUMENTS_VERSION };

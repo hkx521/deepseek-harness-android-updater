@@ -1,0 +1,124 @@
+# DeepSeek Harness Android compatibility patch for DSH 0.1.5-rc.1.
+# 批次23：llm-pi-ai 重新启用——0.1.5-rc.1 依赖树已纯 JS（@earendil-works/pi-ai 无原生模块，
+# 旧禁用理由系 0.1.1 时代遗留），且 Models 页「添加自定义提供方」整链路以本插件为宿主
+# （settings namespace llm-pi-ai 未注册 → 按钮不渲染 + 服务端拒写）。
+# 保留 bare id 行：MainActivity.ensurePatchConfig 校验要求文件含 llm-pi-ai 字样。
+- id: llm-pi-ai
+- id: sandbox
+  disabled: true
+- id: bash-sandbox
+  disabled: true
+- id: pwsh-sandbox
+  disabled: true
+- id: permission
+  config:
+    presets:
+      workspace-write:
+        sandbox: workspace-write
+        approval: ask
+      danger-full-access:
+        sandbox: danger-full-access
+        approval: never
+    defaultPreset: danger-full-access
+- id: session-log-download
+  disabled: true
+- insert:
+    - id: bash-local
+      name: '@deepseek-ai/dsh-bash-local'
+      config:
+        cwd: !!js (process.env.DSH_WORKSPACE || process.cwd())
+        timeoutMs: 60000
+        maxTimeoutMs: 600000
+    - id: tool-shizuku
+      name: '@deepseek-ai/dsh-tool-shizuku'
+    - id: tool-android
+      name: '@deepseek-ai/dsh-tool-android'
+    - id: tool-accessibility
+      name: '@deepseek-ai/dsh-tool-accessibility'
+    # Command Code Go 订阅 provider（第三方 @jiesou/dsh-commandcode-go-provider@0.1.11，
+    # 纯 JS cordis 插件随包烧录：包体物化于 dshroot/lib/node_modules/@jiesou/，无运行时
+    # dependencies（仅 peer 指向 DSH 自身组件）。insert id 与包自带 cordis.patch.yml 一致；
+    # 凭据 COMMANDCODE_API_KEY 在 Models 页该 provider 卡片填入。
+    - id: commandcode-go-provider
+      name: '@jiesou/dsh-commandcode-go-provider'
+    - id: model-router
+      name: '@jiesou/dsh-model-router'
+    # CodeArts(华为) + CodeBuddy 认证与 LLM provider（第三方 dsh-codearts-auth v0.1.0，
+    # 纯 TS 零原生依赖，lib/ 编译产物随包烧录于 overlay/node_modules/dsh-codearts-auth/，
+    # 由 apply_profile_vendor_overlay 白名单物化进 profile 树）。
+    - id: codearts-auth
+      name: 'dsh-codearts-auth'
+    # Google Antigravity (agy) 认证与模型接入（第三方 dsh-agy v0.2.6，纯 JS，已改造主密钥
+    # 存储为自有文件 agy-master-key.json 以规避 DSH 0.1.5-rc.1 的凭据文档严格校验）。
+    - id: dsh-agy
+      name: 'dsh-agy'
+    - id: dsh-agy-web
+      name: 'dsh-agy/web'
+
+- id: connection
+  inject: [webRuntime, webServer]
+- insert:
+    - id: mnemon-bundle
+      name: 'cordis:group'
+      config:
+        - id: mnemon
+          name: 'dsh-mnemon'
+          config:
+            routingGuidance: true
+            lifecycleEnabled: true
+            recallMode: guided
+            writebackMode: guided
+            idleReviewMs: 30000
+            tabEnabled: true
+            writeEnabled: true
+            remoteAccess: read-only
+            timeoutMs: 10000
+            defaultRecallLimit: 10
+            embedding:
+              enabled: false
+              endpoint: http://localhost:11434
+              model: nomic-embed-text
+            recallQuality:
+              policy: strict-v1
+              lowScoreThreshold: 0.25
+              highScoreThreshold: 0.6
+              candidateMultiplier: 3
+              maxMediumResults: 4
+              maxUnknownResults: 2
+        - id: mnemon-source-runtime
+          name: 'dsh-mnemon-source-runtime'
+        - id: mnemon-source-documents
+          name: 'dsh-mnemon-source-documents'
+        - id: mnemon-source-memory-spaces
+          name: 'dsh-mnemon-source-memory-spaces'
+          config:
+            providers:
+              - use: dsh-mnemon-provider-mnemon-native
+                instanceId: mnemon-native
+              - use: dsh-mnemon-provider-openviking
+                instanceId: openviking
+              - use: dsh-mnemon-provider-honcho
+                instanceId: honcho
+              - use: dsh-mnemon-provider-mem0
+                instanceId: mem0
+              - use: dsh-mnemon-provider-hindsight
+                instanceId: hindsight
+              - use: dsh-mnemon-provider-holographic
+                instanceId: holographic
+              - use: dsh-mnemon-provider-retaindb
+                instanceId: retaindb
+              - use: dsh-mnemon-provider-byterover
+                instanceId: byterover
+              - use: dsh-mnemon-provider-supermemory
+                instanceId: supermemory
+        - id: mnemon-strategy-default-three-tier
+          name: 'dsh-mnemon-strategy-default-three-tier'
+        - id: mnemon-strategy-auto-capture
+          name: 'dsh-mnemon-strategy-auto-capture'
+          disabled: true
+        - id: mnemon-strategy-light-context
+          name: 'dsh-mnemon-strategy-light-context'
+          disabled: true
+        - id: mnemon-strategy-scoped
+          name: 'dsh-mnemon-strategy-scoped'
+          disabled: true

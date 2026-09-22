@@ -1,0 +1,13 @@
+import z from 'schemastery';
+export { resolveEmbedding, resolvePersistenceStrategy, resolveRecallQuality } from 'dsh-mnemon-source-memory-spaces';
+import type { Config as SharedConfig, CustomPackConfig as SharedCustomPackConfig, InteractionConfig as SharedInteractionConfig, ResolvedConfig as SharedResolvedConfig, ResolvedInteractionConfig as SharedResolvedInteractionConfig } from "./protocol.ts";
+export { DEFAULT_IDLE_REVIEW_MS, DEFAULT_EMBEDDING_ENDPOINT, DEFAULT_EMBEDDING_MODEL, DEFAULT_EMBEDDING_PROTOCOL, DEFAULT_RECALL_CANDIDATE_MULTIPLIER, DEFAULT_RECALL_HIGH_SCORE_THRESHOLD, DEFAULT_RECALL_LIMIT, DEFAULT_RECALL_LOW_SCORE_THRESHOLD, DEFAULT_RECALL_MAX_MEDIUM_RESULTS, DEFAULT_RECALL_MAX_UNKNOWN_RESULTS, DEFAULT_RECALL_QUALITY_POLICY, DEFAULT_RUNTIME_MAINTENANCE_MAX_TOKENS, DEFAULT_RUNTIME_MEMORY_LIMIT_BYTES, DEFAULT_RUNTIME_USER_LIMIT_BYTES, DEFAULT_TIMEOUT_MS, MAX_RUNTIME_MAINTENANCE_MAX_TOKENS, MAX_RUNTIME_MEMORY_LIMIT_BYTES, } from './config-values.ts';
+export type Config = SharedConfig;
+export type CustomPackConfig = SharedCustomPackConfig;
+export type InteractionConfig = SharedInteractionConfig;
+export type ResolvedConfig = SharedResolvedConfig;
+export type ResolvedInteractionConfig = SharedResolvedInteractionConfig;
+export declare const InteractionConfig: z<InteractionConfig>;
+export declare const Config: z<Config>;
+export declare function resolveInteractionConfig(config?: InteractionConfig): ResolvedInteractionConfig;
+export declare function resolveConfig(config?: Config): ResolvedConfig;

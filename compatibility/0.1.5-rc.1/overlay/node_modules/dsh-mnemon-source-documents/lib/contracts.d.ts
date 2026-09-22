@@ -1,0 +1,89 @@
+//#region src/contracts.d.ts
+type DocumentStatus = 'active' | 'archived';
+interface DocumentRecord {
+  id: string;
+  title: string;
+  description: string;
+  status: DocumentStatus;
+  filename: string;
+  relativePath: string;
+  sourcePaths: string[];
+  sessionIds: string[];
+  createdAt: string;
+  updatedAt: string;
+  lastAccessedAt: string;
+  revision: number;
+  contentHash: string;
+  sizeBytes: number;
+  archivedAt?: string;
+  archiveSummary?: string;
+  memoryBodyIds: string[];
+}
+interface DocumentView extends DocumentRecord {
+  content: string;
+}
+interface DocumentSnapshot {
+  workspaceRoot: string;
+  directory: string;
+  indexPath: string;
+  generatedAt: string;
+  revision: string;
+  limitBytes: number;
+  activeBytes: number;
+  activeCount: number;
+  archivedCount: number;
+  total: number;
+  documents: Array<DocumentRecord & {
+    healthy: boolean;
+    excerpt: string;
+  }>;
+}
+interface DocumentSearchResult {
+  query: string;
+  includeArchived: boolean;
+  total: number;
+  generatedAt: string;
+  results: Array<DocumentView & {
+    score: number;
+    excerpt: string;
+  }>;
+}
+type DocumentMutation = {
+  action: 'create';
+  title: string;
+  description?: string;
+  content: string;
+  sourcePaths?: string[];
+  sessionIds?: string[];
+} | {
+  action: 'update';
+  id: string;
+  title?: string;
+  description?: string;
+  content?: string;
+  sourcePaths?: string[];
+  sessionIds?: string[];
+};
+interface DocumentMutationResult {
+  success: true;
+  action: 'created' | 'updated' | 'archived';
+  document: DocumentView;
+  snapshot: DocumentSnapshot;
+  maintenance?: {
+    runId: string;
+    provider: string;
+    summary: string;
+    memoryBodyIds: string[];
+    archivedDocumentIds: string[];
+  };
+}
+interface DocumentCapacityPlan {
+  projected: number;
+  limit: number;
+  fits: boolean;
+  candidates: DocumentRecord[];
+}
+declare const DOCUMENTS_VERSION = 1;
+declare const DOCUMENTS_ACTIVE_LIMIT_BYTES: number;
+//#endregion
+export { DOCUMENTS_ACTIVE_LIMIT_BYTES, DOCUMENTS_VERSION, DocumentCapacityPlan, DocumentMutation, DocumentMutationResult, DocumentRecord, DocumentSearchResult, DocumentSnapshot, DocumentStatus, DocumentView };

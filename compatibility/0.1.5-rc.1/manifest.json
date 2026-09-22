@@ -1,0 +1,26 @@
+{
+  "dsh_version": "0.1.5-rc.1",
+  "upstream_tag": "dsh-v0.1.5-rc.1",
+  "upstream_commit": "183f08e9c6dde7e36cd2318eaee70b0da08fb35e",
+  "expected_versions": {
+    "@deepseek-ai/dsh": "0.1.5-rc.1",
+    "@deepseek-ai/dsh-attachment-local": "0.1.5-rc.1",
+    "@deepseek-ai/dsh-session-persistence-jsonl": "0.1.5-rc.1",
+    "@deepseek-ai/dsh-subprocess-local": "0.1.5-rc.1",
+    "@deepseek-ai/node-addon-system": "0.1.2",
+    "@img/sharp-libvips-linux-arm64": "1.3.3",
+    "@img/sharp-linux-arm64": "0.35.4",
+    "node-addon-require-builtin": "0.1.5",
+    "node-pty": "1.2.0-beta.15",
+    "sharp": "0.35.4",
+    "@img/colour": "1.1.0"
+  },
+  "android_replacements": [
+    "pure-js require-builtin fallback",
+    "pure-js flock fallback",
+    "child-process node-pty fallback",
+    "header-only sharp metadata shim",
+    "attachment pass-through normalization",
+    "hard-link to exclusive copy"
+  ]
+}

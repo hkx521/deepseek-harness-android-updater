@@ -1,0 +1,9 @@
+{
+  "name": "@deepseek-ai/dsh-tools",
+  "version": "0.1.5-rc.1",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./index.js"
+  }
+}

@@ -1,0 +1,23 @@
+{
+  "name": "@jiesou/dsh-model-router",
+  "version": "0.1.0",
+  "description": "High-availability model routing and fallback plugin for DeepSeek Harness on Android.",
+  "type": "module",
+  "main": "lib/index.js",
+  "exports": {
+    ".": "./lib/index.js",
+    "./package.json": "./package.json"
+  },
+  "keywords": [
+    "dsh",
+    "dsh-plugin",
+    "cordis",
+    "model-router",
+    "fallback",
+    "circuit-breaker"
+  ],
+  "license": "MIT",
+  "peerDependencies": {
+    "@deepseek-ai/cordis": ">=4.0.1 <5"
+  }
+}

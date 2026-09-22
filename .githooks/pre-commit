@@ -1,0 +1,28 @@
+#!/bin/sh
+# 提交闸门：源码/测试/工具改了，但没有对应的落盘记录（当日 journal 或 CHANGES.md）→ 拒绝提交。
+# 安装：git config core.hooksPath .githooks
+# 绕过（不推荐）：git commit --no-verify
+set -u
+ROOT_DIR="$(git rev-parse --show-toplevel 2>/dev/null)" || exit 0
+cd "$ROOT_DIR" || exit 0
+
+PY=""
+for cand in python python3 py ./.venv/Scripts/python.exe ./.venv/bin/python; do
+  if command -v "$cand" >/dev/null 2>&1; then PY="$cand"; break; fi
+done
+if [ -z "$PY" ]; then
+  echo "[pre-commit] 未找到 python，跳过落盘闸门"
+  exit 0
+fi
+
+if "$PY" tools/journal_sync.py --check; then
+  exit 0
+fi
+
+echo ""
+echo "[pre-commit] 落盘闸门未通过：源码改动缺少对应记录。"
+echo "  1) $PY tools/journal_sync.py          # 生成当日 journal 草稿，并补齐 决策/验证/遗留"
+echo "  2) $PY tools/journal_sync.py --state  # 刷新 docs/STATE.md 的现状与下一步"
+echo "  3) 或更新 CHANGES.md 的批次条目"
+echo "  确认无需记录时可用：git commit --no-verify"
+exit 1

@@ -1,0 +1,17 @@
+{
+  "android_app": {
+    "base_tag": "v1.7.5",
+    "package_name": "com.deepseek.harness",
+    "version_code": 28,
+    "version_name": "1.9.0-dsh0.1.5rc1"
+  },
+  "dsh": {
+    "version": "0.1.5-rc.1",
+    "package": "@deepseek-ai/dsh",
+    "npm_spec": "@deepseek-ai/dsh@0.1.5-rc.1",
+    "upstream_tag": "dsh-v0.1.5-rc.1",
+    "upstream_commit": "183f08e9c6dde7e36cd2318eaee70b0da08fb35e",
+    "minimum_node_major": 22
+  },
+  "compatibility_profile": "0.1.5-rc.1"
+}

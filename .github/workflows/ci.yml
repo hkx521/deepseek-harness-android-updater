@@ -1,0 +1,59 @@
+# CI：轻量门禁——ruff 静态检查 + pytest 纯逻辑单测 + CLI 冒烟。
+# 设计约束：必须在 ubuntu-latest 裸机通过，零 Android SDK / JDK / 大文件 / 真机依赖。
+#
+# 已核实并剔除的 CLI 候选命令（均为 tools/dsh_updater 动词）：
+#   - prepare / all ：需要 input/DeepSeekHarness-official-v1.7.5.apk（百 MB 级基础包，
+#     不入库、人工下载）+ 完整 JDK + Android SDK + npm 网络安装，CI 裸机不可行。
+#   - build        ：需已 prepare 的 workspace + JDK + Android SDK。
+#   - refresh      ：需已 prepare 的 workspace（会重新 npm 安装）。
+#   - verify       ：正常语义需已 prepare 的 workspace；仅保留其「workspace 不存在」
+#     错误路径做冒烟（零依赖，验证 CLI 错误退出码约定）。
+#   - init-signing ：需 JDK keytool，且会在 CI 工作目录生成无意义密钥文件。
+#   - doctor       ：本身只读零网络，但要求 node>=22 + npm + JDK + Android SDK 全部
+#     就绪才返回 0，强依赖 runner 镜像预装清单，不作为硬门禁。
+name: ci
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install toolchain
+        # ruff 固定版本：显式 --select 下规则代码稳定，固定版本仅防未来默认行为漂移。
+        run: pip install "ruff==0.16.1" pytest
+
+      - name: Ruff
+        # --select E4,E7,E9,F：ruff 文档声明的经典默认集（0.16 起默认集扩大到
+        # S/I/UP/RUF 等，本仓库存量代码尚有该类历史告警，先按经典默认收敛）。
+        # per-file-ignores 为两处存量历史问题豁免（属工程清账范围，清理后应删除）：
+        #   cli.py F841 —— parser() 内 lock = load_lock() 实为 lock 文件合法性校验副作用；
+        #   workspace.py F401 —— import os 未使用。
+        run: >
+          ruff check .
+          --exclude docs,build,android-app,dist,.local,.venv
+          --select E4,E7,E9,F
+          --per-file-ignores "tools/dsh_updater/cli.py:F841"
+          --per-file-ignores "tools/dsh_updater/workspace.py:F401"
+
+      - name: Pytest
+        # 纯逻辑单测：不联网、不碰设备。运行方式必须为 python -m pytest
+        # （保证仓库根在 sys.path，tests/ 内 from tools... 导入才成立）。
+        run: python -m pytest tests/ -q
+
+      - name: CLI smoke (--help)
+        # argparse 解析到 --help 即退出 0：只读 updater.lock.json，纯 stdlib import。
+        run: python -m tools.dsh_updater --help
+
+      - name: CLI smoke (error path)
+        # 对不存在的 workspace 调 verify：应打印 ERROR 并以 1 退出（预期失败路径，
+        # 不触发任何下载/构建）。`!` 断言其退出码非 0。
+        run: '! python -m tools.dsh_updater verify --workspace "$RUNNER_TEMP/no-such-workspace"'

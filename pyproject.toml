@@ -1,0 +1,16 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "dsh-android-updater"
+version = "0.1.0"
+description = "Reproducible DeepSeek Harness Android payload and APK builder"
+requires-python = ">=3.10"
+dependencies = []
+
+[project.scripts]
+dsh-android-updater = "tools.dsh_updater.cli:main"
+
+[tool.setuptools]
+packages = ["tools.dsh_updater"]

@@ -1,0 +1,13 @@
+# dsh-agy bundle patch: mounts the dsh-agy plugins into a dsh profile.
+
+# Install with: dsh plugin --profile <name> add dsh-agy
+# The loader inserts these rows; the main plugin registers the agy LLM adapter
+# routes, the web entry registers the /agy UI once ctx.webServer activates
+# (it stays pending in profiles without a web server).
+
+- insert:
+    - id: dsh-agy
+      name: 'dsh-agy'
+
+    - id: dsh-agy-web
+      name: 'dsh-agy/web'

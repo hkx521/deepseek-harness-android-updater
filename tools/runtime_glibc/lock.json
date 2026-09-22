@@ -1,0 +1,39 @@
+{
+  "artifacts": {
+    "node": {
+      "version": "24.21.0",
+      "url": "https://nodejs.org/dist/v24.21.0/node-v24.21.0-linux-arm64.tar.xz",
+      "sha256": "6ad1325edbdb5649c379b75a237147a666c95d4f9ae8d340fef2d1575d289ad2"
+    },
+    "glibc": {
+      "version": "2.44-0",
+      "url": "https://sync.termux-pacman.dev/gpkg/aarch64/glibc-2.44-0-aarch64.pkg.tar.xz",
+      "sha256": "8725a20d85fa35a094cf092286295668fd5292247128c4bb8101585ba063799c"
+    },
+    "gcc-libs": {
+      "version": "14.2.1-1",
+      "url": "https://sync.termux-pacman.dev/gpkg/aarch64/gcc-libs-glibc-14.2.1-1-aarch64.pkg.tar.xz",
+      "sha256": "9316728ceeb23c320756aa0bb03460f9767b6efdc44a478c86f7fcc44c6e11ec"
+    },
+    "termux-exec-glibc": {
+      "version": "1:1.0-0",
+      "url": "https://sync.termux-pacman.dev/gpkg/aarch64/termux-exec-glibc-1%3A1.0-0-aarch64.pkg.tar.xz",
+      "sha256": "f7d017100a43c31a49a7150e5b0b4aeb38857da363d0cca30a97de1d70bad7cd"
+    },
+    "ripgrep": {
+      "version": "15.2.0",
+      "url": "https://github.com/BurntSushi/ripgrep/releases/download/15.2.0/ripgrep-15.2.0-aarch64-unknown-linux-musl.tar.gz",
+      "sha256": "800b1e7206afe799dfb5a6901f23147cfaabe0e52210538100f61e86e1740915"
+    },
+    "curl-static": {
+      "version": "8.x (pkgforge-dev mirror)",
+      "url": "https://raw.githubusercontent.com/pkgforge-dev/Static-Binaries/main/curl/curl_aarch64_arm64_Linux",
+      "sha256": "cae4b723c121dcc5c7c54809c49b286be32904384d757896fa9c4b90e6c1e807"
+    },
+    "busybox": {
+      "version": "1.36.1 (pkgforge-dev mirror)",
+      "url": "https://raw.githubusercontent.com/pkgforge-dev/Static-Binaries/main/busybox/busybox_aarch64_arm64_musl_Linux",
+      "sha256": "89e8e12b6933d966fab05b3935223f085b4de055e35f775aacc4b795e0445865"
+    }
+  }
+}

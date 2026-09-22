@@ -1,0 +1,49 @@
+# 二进制与密钥（不进入仓库）
+*.apk
+*.idsig
+*.tar.aa
+*.tar.ab
+*.tar.ac
+*.tar.ad
+android-app/release.jks
+android-app/sdk/android.jar
+android-app/staging/
+android-app/out/
+android-app/assets/
+.credentials.yaml
+payload.zip
+.local/
+.venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+build/
+input/
+dist/
+*.egg-info/
+
+# 真机测试痕迹（不进仓库）
+dump*.json
+dsend*.json
+shot*.png
+# 真机取证截图：根目录一次性截图不入库（真机复现图请放 docs/screenshots/ 或 .local/）
+/*.png
+.workbuddy/
+.mnemon/
+
+# 批次97：密钥与凭据（原来只精确忽略 android-app/release.jks —— 补通配，防「换个文件名/路径」就漏）
+*.jks
+*.keystore
+*.p12
+*.pfx
+*.env
+signing.env
+keystore.properties
+# 托管 home 的凭据/配置文件（设备侧文件名，见 AGENTS.md）
+settings.yaml
+agy-accounts.json
+agy-master-key.json
+# 工作区杂物（避免 git add -A 误带）
+AGENTS.md.bak.*
+diff_*.txt
+read_diff.ps1

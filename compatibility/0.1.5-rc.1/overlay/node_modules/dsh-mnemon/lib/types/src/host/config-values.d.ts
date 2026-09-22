@@ -1,0 +1,15 @@
+export declare const DEFAULT_IDLE_REVIEW_MS = 30000;
+export declare const DEFAULT_RUNTIME_MEMORY_LIMIT_BYTES: number;
+export declare const DEFAULT_RUNTIME_USER_LIMIT_BYTES: number;
+export declare const MAX_RUNTIME_MEMORY_LIMIT_BYTES: number;
+export declare const DEFAULT_RUNTIME_MAINTENANCE_MAX_TOKENS = 8192;
+export declare const MAX_RUNTIME_MAINTENANCE_MAX_TOKENS = 1000000;
+export { DEFAULT_EMBEDDING_ENDPOINT, DEFAULT_EMBEDDING_MODEL, DEFAULT_EMBEDDING_PROTOCOL, MNEMON_EMBEDDING_PROTOCOLS } from "./protocol.ts";
+export declare const DEFAULT_TIMEOUT_MS = 10000;
+export declare const DEFAULT_RECALL_LIMIT = 10;
+export declare const DEFAULT_RECALL_QUALITY_POLICY: string;
+export declare const DEFAULT_RECALL_LOW_SCORE_THRESHOLD: number;
+export declare const DEFAULT_RECALL_HIGH_SCORE_THRESHOLD: number;
+export declare const DEFAULT_RECALL_CANDIDATE_MULTIPLIER: number;
+export declare const DEFAULT_RECALL_MAX_MEDIUM_RESULTS: number;
+export declare const DEFAULT_RECALL_MAX_UNKNOWN_RESULTS: number;

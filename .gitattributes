@@ -1,0 +1,4 @@
+# 钩子必须保持 LF：CRLF 会破坏 shebang，导致提交闸门在部分环境失效
+.githooks/* text eol=lf
+# 脚本同理
+*.sh text eol=lf

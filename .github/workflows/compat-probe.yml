@@ -1,0 +1,212 @@
+# compat-probe：验证「上游 DSH 新版本是否会让兼容补丁失配」。
+#
+# 完整链路 = 基础 APK 解包（prepare）→ npm 安装上游包 → apply.py 落盘 → verify。
+# 能力边界（CI 环境如实缩减为可行子集）：
+#   - prepare 需要 input/DeepSeekHarness-official-*.apk（百 MB 级、不入库、人工下载），
+#     build 还需要 JDK + Android SDK——CI 均不可行，故不解包 APK、不产出 APK。
+#   - workspace.install_dsh 未直接复用：其 require_environment 硬性要求 Android
+#     SDK/JDK/bash（为构建服务，与本探针无关），且探测新版本需要覆盖 lock 的 npm
+#     spec——本 workflow 镜像其 npm 参数（--ignore-scripts --omit=optional --no-audit
+#     --no-fund），以 npm 直接落位上游包。
+#   - 实际执行：npm 下载上游包到临时 devhome 骨架 → 对 compatibility/<profile>/
+#     apply.py 做「干跑」（注入探针 replace_once / _replace_function_until：只校验
+#     每个补丁块锚点在上游文件中的命中数，不写盘）→ 报告每个补丁块 OK / 失配；
+#     任一失配 job 失败。
+# 本地等价命令：
+#   python -m tools.dsh_updater prepare --base-apk <官方APK路径>   # 完整落位 + 打补丁
+#   python -m tools.dsh_updater verify --workspace build/updater   # 落位校验
+#   python -m pytest tests/ -q                                     # 补丁块离线单测
+#
+# 触发：
+#   - 每周一 03:00 UTC 定时：锁定版本回归（npm ci 按 compatibility/<profile>/
+#     package-lock.json，验证当前锁定上游与补丁块仍互相匹配）。
+#   - workflow_dispatch：可输入上游版本号（tag，如 dsh-v0.1.6-rc.1，默认取
+#     compatibility/0.1.5-rc.1/manifest.json 的 upstream_tag）——npm 安装
+#     @deepseek-ai/dsh@<去 dsh- 前缀版本>，探测补丁块在新上游上是否仍锚点唯一。
+name: compat-probe
+
+on:
+  workflow_dispatch:
+    inputs:
+      upstream_tag:
+        description: "上游 DSH tag（如 dsh-v0.1.6-rc.1）；留空 = manifest.json 的 upstream_tag（锁定回归）"
+        required: false
+        default: ""
+  schedule:
+    - cron: "0 3 * * 1"
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      # updater.lock.json 的 dsh.minimum_node_major = 22
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Resolve upstream version
+        id: resolve
+        env:
+          UPSTREAM_TAG_INPUT: ${{ inputs.upstream_tag }}
+        run: |
+          python - <<'PY'
+          import json, os
+          from pathlib import Path
+
+          root = Path.cwd()
+          lock = json.loads((root / "updater.lock.json").read_text(encoding="utf-8"))
+          profile = lock["compatibility_profile"]
+          manifest = json.loads(
+              (root / "compatibility" / profile / "manifest.json").read_text(encoding="utf-8")
+          )
+          tag_input = os.environ.get("UPSTREAM_TAG_INPUT", "").strip()
+          if tag_input:
+              tag, mode = tag_input, "override"
+          else:
+              tag, mode = manifest["upstream_tag"], "locked"  # 默认取 manifest 的 upstream_tag
+          version = tag.removeprefix("dsh-v")  # npm 侧版本号
+          with open(os.environ["GITHUB_OUTPUT"], "a", encoding="utf-8") as fh:
+              fh.write(f"tag={tag}\nversion={version}\nmode={mode}\nprofile={profile}\n")
+          print(f"上游 tag: {tag} / npm 版本: {version} / 模式: {mode} / 兼容档: {profile}")
+          PY
+
+      - name: 落位（npm 下载上游包到临时 devhome 骨架）
+        env:
+          MODE: ${{ steps.resolve.outputs.mode }}
+          PROFILE: ${{ steps.resolve.outputs.profile }}
+          VERSION: ${{ steps.resolve.outputs.version }}
+        run: |
+          set -euo pipefail
+          LIB="$RUNNER_TEMP/compat-probe/devhome/dshroot/lib"
+          mkdir -p "$LIB"
+          printf '%s\n' '{' '  "name": "dsh-compat-probe",' '  "private": true' '}' > "$LIB/package.json"
+          if [ "$MODE" = "locked" ]; then
+            # 锁定回归：镜像 workspace.install_dsh 的 npm ci 路径
+            cp "compatibility/${PROFILE}/package-lock.json" "$LIB/package-lock.json"
+            npm ci --prefix "$LIB" --ignore-scripts --omit=optional --no-audit --no-fund
+          else
+            # 新版本探测：覆盖 npm spec（install_dsh 无版本覆盖入口，参数保持一致）
+            npm install --prefix "$LIB" --save-exact --ignore-scripts --omit=optional \
+              --no-audit --no-fund "@deepseek-ai/dsh@${VERSION}"
+          fi
+
+      - name: apply.py 干跑（补丁块锚点校验，不写盘）
+        env:
+          MODE: ${{ steps.resolve.outputs.mode }}
+          PROFILE: ${{ steps.resolve.outputs.profile }}
+          TAG: ${{ steps.resolve.outputs.tag }}
+        run: |
+          python - <<'PY'
+          import importlib.util
+          import json
+          import os
+          import sys
+          from pathlib import Path
+
+          root = Path.cwd()
+          profile = os.environ["PROFILE"]
+          mode = os.environ["MODE"]
+          tag = os.environ["TAG"]
+          devhome = Path(os.environ["RUNNER_TEMP"]) / "compat-probe" / "devhome"
+          node_modules = devhome / "dshroot" / "lib" / "node_modules"
+
+          spec = importlib.util.spec_from_file_location(
+              "compat_apply", root / "compatibility" / profile / "apply.py"
+          )
+          module = importlib.util.module_from_spec(spec)
+          spec.loader.exec_module(module)
+
+          results: list[tuple[bool, str, str]] = []
+
+          def record(ok: bool, label: str, detail: str) -> None:
+              results.append((ok, label, detail))
+
+          def rel(path: Path) -> str:
+              try:
+                  return str(path.relative_to(node_modules))
+              except ValueError:
+                  return str(path)
+
+          def probe_replace_once(path: Path, old: str, new: str) -> None:
+              """干跑探针：校验 old 在上游文件中恰好出现 1 次，不写盘。"""
+              label = f"{rel(path)} :: {old.strip()[:56]!r}"
+              if not path.is_file():
+                  record(False, label, "目标文件不存在（包结构漂移）")
+                  return
+              count = path.read_text(encoding="utf-8").count(old)
+              if count == 1:
+                  record(True, label, "锚点唯一命中")
+              else:
+                  record(False, label, f"锚点出现 {count} 次（期望 1）→ 补丁块失配")
+
+          def probe_replace_function_until(
+              path: Path, start_marker: str, end_marker: str, replacement: str
+          ) -> None:
+              """干跑探针：校验函数块起止锚点存在，不写盘。"""
+              label = f"{rel(path)} :: 函数块 {start_marker.split('(')[0]}(...)"
+              if not path.is_file():
+                  record(False, label, "目标文件不存在（包结构漂移）")
+                  return
+              text = path.read_text(encoding="utf-8")
+              if start_marker not in text:
+                  record(False, label, "起始锚点缺失（上游函数被重命名/移除）")
+                  return
+              start = text.index(start_marker)
+              if end_marker not in text[start:]:
+                  record(False, label, "结束锚点缺失")
+                  return
+              record(True, label, "函数块锚点命中")
+
+          # 干跑只对全新 npm 下载物执行（不含历史补丁块，apply.py 内的旧块迁移
+          # 写盘分支不会触发）；字符串替换经注入探针，函数块替换 monkeypatch 屏蔽，
+          # 全程零写盘。
+          module._replace_function_until = probe_replace_function_until
+          module.apply(devhome, probe_replace_once)
+
+          failed = [(l, d) for ok, l, d in results if not ok]
+          lines = [f"## compat-probe（{tag} · {mode}）", ""]
+          for ok, label, detail in results:
+              mark = "OK  " if ok else "FAIL"
+              print(f"[{mark}] {label} — {detail}")
+              lines.append(f"- {'✅' if ok else '❌'} `{label}` — {detail}")
+
+          # 版本对照：expected_versions 与实际安装版本
+          manifest = json.loads(
+              (root / "compatibility" / profile / "manifest.json").read_text(encoding="utf-8")
+          )
+          version_mismatch: list[str] = []
+          lines += ["", "### expected_versions 对照", ""]
+          for package, expected in manifest.get("expected_versions", {}).items():
+              package_json = node_modules / Path(package) / "package.json"
+              actual = (
+                  json.loads(package_json.read_text(encoding="utf-8")).get("version")
+                  if package_json.is_file()
+                  else "<未安装>"
+              )
+              matched = actual == expected
+              if not matched:
+                  version_mismatch.append(f"{package}: 期望 {expected} 实际 {actual}")
+              note = "" if mode == "locked" else "（override 模式下版本漂移属预期，仅记录）"
+              print(f"[{'OK  ' if matched else 'DIFF'}] {package}: {actual} (锁定 {expected}) {note}")
+              lines.append(f"- {'✅' if matched else '⚠️'} {package}: `{actual}`（锁定 `{expected}`）{note}")
+
+          lines += ["", f"**补丁块：{len(results) - len(failed)}/{len(results)} 命中，失配 {len(failed)} 项**"]
+          summary = os.environ.get("GITHUB_STEP_SUMMARY")
+          if summary:
+              with open(summary, "a", encoding="utf-8") as fh:
+                  fh.write("\n".join(lines) + "\n")
+
+          if failed:
+              print(f"compat-probe: {len(failed)} 个补丁块失配（上游漂移）", file=sys.stderr)
+              sys.exit(1)
+          if mode == "locked" and version_mismatch:
+              print(f"compat-probe: 锁定模式下版本不一致: {version_mismatch}", file=sys.stderr)
+              sys.exit(1)
+          print("compat-probe: 全部补丁块锚点命中")
+          PY
