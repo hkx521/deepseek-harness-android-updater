@@ -1,7 +1,7 @@
 # 虚拟屏（vscreen）使用说明
 
 > 面向使用者的功能介绍与排错指引。让 AI 在一台**独立的虚拟屏幕**上操作 App——**不抢你的主屏**。
-> 本文对齐批次 11 接口契约（`.local/b11-contract.md`），以 App 实际行为为准。
+> 本文以 App 的实际行为为准（如与实现不符，以代码为准）。
 
 ---
 
@@ -129,9 +129,9 @@ auto 模式下还有"掉线自动换道"：正在用的通道失效（比如 su 
 5. **截图速度**：overlay 模式下截图走系统截屏通道，比 trusted/plain 略慢（约半秒到一秒），连续看画面时会有明显节奏感。
 6. **虚拟屏里的输入法**：部分系统弹窗（如输入法）在虚拟屏上的行为与主屏有差异，但 `android_type` 的语义写入路径不依赖键盘窗口停留在虚拟屏。
 7. **虚拟屏输入不再依赖可见软键盘**：`android_screen` 会显式读取虚拟屏的语义树，`android_type` 优先对目标输入框执行语义写入并回读校验；系统输入法窗口仍可能留在主屏，属于后台虚拟屏的正常行为。语义写入不可用时才回退到带回读校验的 `KEYCODE_PASTE`。
-8. **Android 17（API 37）批次 11 实测结论（2026-09-13，Pixel 6 Pro）**：
+8. **Android 17（API 37）实测结论（2026-09-13，Pixel 6 Pro）**：
    - root 通道 `trusted` 策略**全链路可用**（建屏 0.37s、tap/swipe/key/see/launch 全部通过，App 真实运行在虚拟屏且不抢主屏）；
-   - **overlay 保底模式在 A17 上受限**：建屏可用、`input -d` 注入可用，但 `screencap -d` 截屏（root 亦然）与 shell 域 `am start --display` 被系统拒绝——即 **S3 回退在 A17 上暂无"看"的能力**（见 docs/批次11e-联调报告.md 发现 F3，替代截屏方案已列入后续任务）；
+   - **overlay 保底模式在 A17 上受限**：建屏可用、`input -d` 注入可用，但 `screencap -d` 截屏（root 亦然）与 shell 域 `am start --display` 被系统拒绝——即 **S3 回退在 A17 上暂无"看"的能力**（替代截屏方案已列入后续任务）；
    - **Shizuku 通道已补测通过（2026-09-13，荣耀 BKQ-AN10 / A17 / 无 root）**：无 root 时 App 自动选 Shizuku 通道，该 ROM 上直达最优的 trusted 策略（全能力含截图）。注意各 ROM 策略不一：Pixel 系（Android 15+）无 root 时会落到 overlay 保底（受限，见上一条）；
    - 3081 桥鉴权失败统一返回 HTTP 401 `{"ok":false,"error":"unauthorized"}`（与 /clipboard 等既有路由同一鉴权面）。
 
@@ -151,4 +151,4 @@ auto 模式下还有"掉线自动换道"：正在用的通道失效（比如 su 
 
 ---
 
-*本文所属批次 11 虚拟屏功能的合规声明见 [`../THIRD_PARTY_NOTICES.md`](../THIRD_PARTY_NOTICES.md)。*
+*虚拟屏功能的第三方合规声明见 [`../THIRD_PARTY_NOTICES.md`](../THIRD_PARTY_NOTICES.md)。*
