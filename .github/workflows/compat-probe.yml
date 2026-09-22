@@ -7,7 +7,8 @@
 #   - workspace.install_dsh 未直接复用：其 require_environment 硬性要求 Android
 #     SDK/JDK/bash（为构建服务，与本探针无关），且探测新版本需要覆盖 lock 的 npm
 #     spec——本 workflow 镜像其 npm 参数（--ignore-scripts --omit=optional --no-audit
-#     --no-fund），以 npm 直接落位上游包。
+#     --no-fund）与落位根 package.json（_write_npm_package：声明 dsh 依赖），
+#     以 npm 直接落位上游包。
 #   - 实际执行：npm 下载上游包到临时 devhome 骨架 → 对 compatibility/<profile>/
 #     apply.py 做「干跑」（注入探针 replace_once / _replace_function_until：只校验
 #     每个补丁块锚点在上游文件中的命中数，不写盘）→ 报告每个补丁块 OK / 失配；
@@ -73,6 +74,7 @@ jobs:
           version = tag.removeprefix("dsh-v")  # npm 侧版本号
           with open(os.environ["GITHUB_OUTPUT"], "a", encoding="utf-8") as fh:
               fh.write(f"tag={tag}\nversion={version}\nmode={mode}\nprofile={profile}\n")
+              fh.write("package=" + lock["dsh"]["package"] + "\n")
           print(f"上游 tag: {tag} / npm 版本: {version} / 模式: {mode} / 兼容档: {profile}")
           PY
 
@@ -81,11 +83,22 @@ jobs:
           MODE: ${{ steps.resolve.outputs.mode }}
           PROFILE: ${{ steps.resolve.outputs.profile }}
           VERSION: ${{ steps.resolve.outputs.version }}
+          DSH_PACKAGE: ${{ steps.resolve.outputs.package }}
         run: |
           set -euo pipefail
           LIB="$RUNNER_TEMP/compat-probe/devhome/dshroot/lib"
           mkdir -p "$LIB"
-          printf '%s\n' '{' '  "name": "dsh-compat-probe",' '  "private": true' '}' > "$LIB/package.json"
+          # 根 package.json 必须声明 dsh 依赖，等价于 workspace._write_npm_package：
+          # 根依赖为空时 npm ci 的理想树为空，会静默输出 "up to date" 装 0 个包
+          # （2026-09-22 实测），随后 apply.py 干跑只报 FileNotFoundError。
+          cat > "$LIB/package.json" <<JSON
+          {
+            "name": "dsh-android-runtime",
+            "private": true,
+            "description": "Pinned DSH runtime closure for the compat probe",
+            "dependencies": { "${DSH_PACKAGE}": "${VERSION}" }
+          }
+          JSON
           if [ "$MODE" = "locked" ]; then
             # 锁定回归：镜像 workspace.install_dsh 的 npm ci 路径
             cp "compatibility/${PROFILE}/package-lock.json" "$LIB/package-lock.json"
@@ -95,6 +108,12 @@ jobs:
             npm install --prefix "$LIB" --save-exact --ignore-scripts --omit=optional \
               --no-audit --no-fund "@deepseek-ai/dsh@${VERSION}"
           fi
+          # 落位守卫：npm 静默装空（或装错树）时必须在本步失败，而不是留给 apply.py 抛
+          # FileNotFoundError。
+          test -f "$LIB/node_modules/${DSH_PACKAGE}/package.json" || {
+            echo "::error::npm 落位后未找到 ${DSH_PACKAGE}（落位失败：依赖树为空或不完整）"
+            exit 1
+          }
 
       - name: apply.py 干跑（补丁块锚点校验，不写盘）
         env:
@@ -106,6 +125,7 @@ jobs:
           import importlib.util
           import json
           import os
+          import shutil
           import sys
           from pathlib import Path
 
@@ -115,6 +135,14 @@ jobs:
           tag = os.environ["TAG"]
           devhome = Path(os.environ["RUNNER_TEMP"]) / "compat-probe" / "devhome"
           node_modules = devhome / "dshroot" / "lib" / "node_modules"
+          # 与 tools/dsh_updater/compatibility 的落位顺序一致：先把 profile overlay 铺进
+          # node_modules，再跑 apply.py，最后做 expected_versions 对照。缺这一步时，由
+          # overlay 提供的包（@img/sharp-*-arm64 等 x64 runner 装不了的可选平台包）会被
+          # 误报「未安装」→ 锁定模式假失败（2026-09-22）。
+          overlay = root / "compatibility" / profile / "overlay" / "node_modules"
+          if overlay.is_dir():
+              shutil.copytree(overlay, node_modules, dirs_exist_ok=True)
+              print(f"overlay 已铺入 node_modules：{overlay.relative_to(root)}")
 
           spec = importlib.util.spec_from_file_location(
               "compat_apply", root / "compatibility" / profile / "apply.py"
