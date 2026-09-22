@@ -151,8 +151,9 @@ python tools/b47_build.py all    # r(资源) → j(javac) → d(d8) → res(资�
 ## 📄 许可证
 
 - 本项目源码采用 [MIT](LICENSE) 许可证（版权归属见 `LICENSE` 首行）。
-- **例外**：虚拟屏（vscreen）特权服务端按 **LGPL-3.0** 分发（源自 Operit / 上游移植基线），声明与义务履行见 [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md)，许可证全文见 `licenses/`。
-- 依赖许可：DSH 内核（`@deepseek-ai/dsh`）与 Node 运行时为 MIT；Shizuku SDK 为 Apache-2.0。
+- **例外**：虚拟屏（vscreen）特权服务端按 **LGPL-3.0** 分发（源自 Operit / 上游移植基线），许可证全文见 `licenses/`。**另有一处 LGPL 组件**：图像处理链随包的 libvips 预编译库（`@img/sharp-libvips-linux-arm64`，**LGPL-3.0-or-later**，未修改）。
+- 依赖许可：DSH 内核（`@deepseek-ai/dsh`）与 Node 运行时为 MIT；Shizuku SDK 为 Apache-2.0；**随包的第三方 DSH 插件**（`dsh-agy`、`dsh-codearts-auth`、`dsh-mnemon*`、`@jiesou/dsh-commandcode-go-provider`）均为 MIT。
+- 第三方组件的完整清单、上游仓库与改动声明见 [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md)（**§3** 为随包第三方插件与运行期依赖）。
 
 ## 🙏 致谢 / Acknowledgments
 
@@ -161,3 +162,5 @@ python tools/b47_build.py all    # r(资源) → j(javac) → d(d8) → res(资�
 - [Operit](https://github.com/AAswordman/Operit)（AAswordman）—— 虚拟屏机制源头，相关代码按 **LGPL-3.0** 分发
 - [woaiys3/deepseek-harness-android-app](https://github.com/woaiys3/deepseek-harness-android-app)（移植基线 v1.11）—— 本项目的上游来源
 - [RikkaApps/Shizuku](https://github.com/RikkaApps/Shizuku) —— 免 root 特权通道，SDK 按 **Apache-2.0** 使用
+- 随包分发的第三方 DSH 插件作者：[jiesou](https://github.com/jiesou)（Command Code Go provider）、[chaos-03x](https://github.com/chaos-03x)（dsh-agy）、[solilk115-arch](https://github.com/solilk115-arch)（CodeArts / JetHub 认证）、[omdsh-dev](https://github.com/omdsh-dev)（dsh-mnemon 三层记忆）
+- Node 生态依赖作者：[lovell](https://github.com/lovell)（sharp / libvips）、[Koromix](https://github.com/Koromix)（koffi）、[microsoft](https://github.com/microsoft)（node-pty）、[nodejs](https://github.com/nodejs)（undici）等

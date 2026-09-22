@@ -5,6 +5,9 @@
 但**虚拟屏（vscreen）功能**的特权服务端代码源自 **Operit**（经 [woaiys3/deepseek-harness-android-app](https://github.com/woaiys3/deepseek-harness-android-app) 移植引入），**该部分按 LGPL-3.0 分发**。
 同一个仓库里同时存在两种许可，**请分别遵守**——尤其当你要复用/修改虚拟屏相关文件时。
 
+此外，APK 还随包分发若干**第三方 DSH 插件与 npm 运行期依赖**（见 §3），其中包含本仓库的**第二处 LGPL 组件**
+（libvips 预编译库，§3.3）。
+
 ---
 
 ## 1. Operit（机制源头）与 deepseek-harness-android-app（移植源）— LGPL-3.0（虚拟屏 vscreen）
@@ -95,7 +98,64 @@
 
 ---
 
-## 3. 随包分发的运行时与内核
+## 3. 随包分发的第三方插件与运行期依赖（npm）
+
+APK 的 `assets/payload.zip` 还会随包分发一组**第三方 DSH 插件**及其运行期依赖。其源码位于
+`compatibility/<profile>/overlay/node_modules/`，在构建/落位期被物化进 `dshroot/lib/node_modules` 与
+`dshhome/profiles/web/node_modules` 两棵树。**版权与许可归各自作者所有，本仓库不重新授权它们**。
+
+### 3.1 第三方插件（各有独立上游仓库）
+
+| 包（随包版本） | 上游仓库 | 许可证 |
+|---|---|---|
+| `@jiesou/dsh-commandcode-go-provider`（0.1.11） | <https://github.com/jiesou/dsh-commandcode-go-provider> | MIT |
+| `dsh-agy`（0.2.6） | <https://github.com/chaos-03x/dsh-agy> | MIT |
+| `dsh-codearts-auth`（0.1.0） | <https://github.com/solilk115-arch/dsh-codearts-auth> | MIT |
+| `dsh-mnemon`（0.5.8）+ 20 个子包（`dsh-mnemon-provider-*` / `-source-*` / `-strategy-*`，0.5.4–0.5.6） | <https://github.com/omdsh-dev/dsh-mnemon> | MIT |
+
+每个包目录内均保留了上游 `LICENSE`（`dsh-mnemon` 另自带 `THIRD_PARTY_NOTICES.md` 与 `SECURITY.md`，一并随包分发）。
+
+### 3.2 上述插件的运行期依赖
+
+| 包（随包版本） | 许可证 |
+|---|---|
+| `undici`（8.10.2）· `zod`（4.6.5）· `proper-lockfile`（4.1.2）· `fflate`（0.8.3）· `markdown-to-jsx`（7.7.17）· `scheduler`（0.23.2，React）· `js-tokens`（4.0.0）· `loose-envify`（1.4.0）· `cosmokit`（1.8.1）· `schemastery`（3.18.0）· `@standard-schema/spec`（1.1.0） | MIT |
+| `graceful-fs`（4.2.11）· `signal-exit`（3.0.7）· `semver`（7.8.5） | ISC |
+| `detect-libc`（2.1.2） | Apache-2.0 |
+
+（`schemastery` 随包目录内未附带 LICENSE 文件——上游如此；许可依据为上游 `package.json` 声明的 MIT。）
+
+### 3.3 DSH 内核侧运行期件（平台/原生件，由 overlay 补齐）
+
+`npm ci --omit=optional` 在 x64 / 无网环境装不到的平台件与原生加速件由 overlay 补齐，随包分发：
+
+| 包（随包版本） | 许可证 | 备注 |
+|---|---|---|
+| `sharp`（0.35.4）· `@img/sharp-linux-arm64`（0.35.4）· `@img/colour`（1.1.0） | Apache-2.0 · Apache-2.0 · MIT | 图像处理链 |
+| `@img/sharp-libvips-linux-arm64`（1.3.3） | **LGPL-3.0-or-later** | libvips 预编译库（独立模块、未修改）。该包目录内未附带许可全文，按 §1.4 已随仓库提供的 [`licenses/LGPL-3.0.txt`](licenses/LGPL-3.0.txt) 一并适用 |
+| `koffi`（3.2.1） | MIT | FFI；<https://github.com/Koromix/koffi> |
+| `node-pty`（1.2.0-beta.15） | MIT | <https://github.com/microsoft/node-pty> |
+| `@deepseek-ai/node-addon-system`（0.1.2）· `node-addon-require-builtin`（0.1.5）· `@deepseek-ai/dsh-win32-process` | MIT | DSH 内核侧平台原生件 |
+
+> `@deepseek-ai/*` 的运行期件（`cosmokit` / `schemastery` / `dsh-client-connection` / `dsh-client-ui-primitives` /
+> `dsh-native-command` 等）本就是 DSH 内核的组成部分，归入 §4 的「DSH 内核」条目。
+
+### 3.4 本仓库对这些第三方文件的改动（如实声明）
+
+1. **`dsh-agy`：公开副本移除了随包内嵌的第三方 OAuth client secret**（改为运行时读 `AGY_CLIENT_SECRET`，
+   该环境变量开关上游 README 已记载）。除这一处外，该包与上游逐字节一致；行为影响 = 不设置该环境变量时
+   agy 的该登录方式不可用（程序不会崩溃）。
+2. **DSH 内核**（`@deepseek-ai/*`，属 §4，不在本节清单内）在构建/落位期会应用
+   `compatibility/<profile>/apply.py` 的 Android 兼容补丁（硬链接改复制、目录 fsync 容错、闲置功耗治理等），
+   补丁后的文件仍按上游各自许可分发。
+3. 本节清单中的第三方插件本体**不做源码级修改**（唯一例外是第 1 条）。
+4. 本仓库自研插件（`plugins/dsh-model-router`、`plugins/dsh-tool-{accessibility,android,shizuku}`）为 **MIT**，
+   不属于第三方。其中 `plugins/dsh-model-router` 在运行时按本项目的命名空间约定以 `@jiesou/dsh-model-router`
+   之名物化——**npm 上并不存在该包，它也不属于本节任何上游作者**。
+
+---
+
+## 4. 随包分发的运行时与内核
 
 | 项 | 说明 |
 |---|---|
@@ -107,11 +167,14 @@
 
 ---
 
-## 4. 摘要
+## 5. 摘要
 
 | 范围 | 许可证 |
 |---|---|
 | 本仓库其余全部内容（App 外壳、插件封装、补丁与升级工具、构建脚本、文档） | **MIT** |
 | `android-app/src/com/deepseek/harness/vscreen/`（虚拟屏特权服务端） | **LGPL-3.0**（源自 Operit，经 deepseek-harness-android-app 移植；本项目有功能增量修改） |
 | `android-app/libs/shizuku-*.aar`、`android-app/assets/rish_shizuku.dex`（Shizuku） | **Apache-2.0** |
+| 随包第三方插件（§3.1：`@jiesou/dsh-commandcode-go-provider`、`dsh-agy`、`dsh-codearts-auth`、`dsh-mnemon*`） | **MIT**（版权归各自作者） |
+| 上述插件与内核的运行期依赖（§3.2 / §3.3：`undici`、`zod`、`sharp`、`koffi`、`node-pty`、`semver` 等） | 各自原许可（多为 MIT；`graceful-fs` / `signal-exit` / `semver` 为 ISC，`sharp` / `detect-libc` 为 Apache-2.0） |
+| `@img/sharp-libvips-linux-arm64`（libvips 预编译库，§3.3） | **LGPL-3.0-or-later**（本仓库第二处 LGPL 组件；许可全文见 [`licenses/LGPL-3.0.txt`](licenses/LGPL-3.0.txt)） |
 | APK 内置 Node 运行时、DSH 内核、npm 依赖 | 各自原许可（Node.js / DSH 为 MIT，其余见各包声明） |
