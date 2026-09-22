@@ -34,15 +34,15 @@ jobs:
       - name: Ruff
         # --select E4,E7,E9,F：ruff 文档声明的经典默认集（0.16 起默认集扩大到
         # S/I/UP/RUF 等，本仓库存量代码尚有该类历史告警，先按经典默认收敛）。
-        # per-file-ignores 为两处存量历史问题豁免（属工程清账范围，清理后应删除）：
-        #   cli.py F841 —— parser() 内 lock = load_lock() 实为 lock 文件合法性校验副作用；
-        #   workspace.py F401 —— import os 未使用。
+        # --ignore E741：ambiguous-variable-name（把 l 当行变量）。E4/E7/E9/F 里
+        # 真正抓 bug 的是 F（未定义名、未使用导入/变量），E741 只是命名风格，
+        # 全仓 e2e/工具脚本大量使用 l 作行变量，不做批量重命名。
+        # 两处存量豁免已写成源码内联 noqa（cli.py F841 校验性赋值 / workspace.py F401）。
         run: >
           ruff check .
           --exclude docs,build,android-app,dist,.local,.venv
           --select E4,E7,E9,F
-          --per-file-ignores "tools/dsh_updater/cli.py:F841"
-          --per-file-ignores "tools/dsh_updater/workspace.py:F401"
+          --ignore E741
 
       - name: Pytest
         # 纯逻辑单测：不联网、不碰设备。运行方式必须为 python -m pytest

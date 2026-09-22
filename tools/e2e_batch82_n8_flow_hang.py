@@ -110,12 +110,6 @@ def panel_rim(frame):
         return -1, -1, -1.0
     l, r = int(np.median(ls)), int(np.median(rs))
     return l, r, (l + r + 1) / 2.0
-    import numpy as np
-    pad = k // 2
-    p = np.pad(a, pad, mode="edge")
-    c = p.cumsum(0).cumsum(1)
-    c = np.pad(c, ((1, 0), (1, 0)), mode="constant")
-    return (c[k:, k:] - c[:-k, k:] - c[k:, :-k] + c[:-k, :-k]) / (k * k)
 
 
 def main():
@@ -126,7 +120,6 @@ def main():
     args = ap.parse_args()
 
     import numpy as np
-    from PIL import Image
 
     out = Path(args.out_dir)
     out.mkdir(parents=True, exist_ok=True)

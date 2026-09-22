@@ -2,7 +2,6 @@
 """
 批次 57 · 方案 A：交互感知与可读性深度打磨契约测试。
 """
-import re
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent

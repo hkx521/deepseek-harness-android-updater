@@ -54,7 +54,8 @@ class Batch69ResolverPathTests(unittest.TestCase):
         lines = []
         for line in body.splitlines():
             line = line.strip()
-            if line.startswith('+ '): line = line[2:]
+            if line.startswith('+ '):
+                line = line[2:]
             if line.startswith('"') and line.endswith('"'):
                 content = line[1:-1]
                 content = content.replace('\\n', '\n').replace('\\"', '"').replace('\\\\', '\\')

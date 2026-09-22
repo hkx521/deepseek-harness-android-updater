@@ -14,7 +14,6 @@ import glob
 import io
 import json
 import os
-import re
 import subprocess
 import sys
 
@@ -160,7 +159,6 @@ def check() -> int:
     if not src:
         print("[journal-check] 无源码改动，跳过")
         return 0
-    journal = os.path.join(JOURNAL_DIR, dt.date.today().isoformat() + ".md")
     journal_rel = "docs/journal/" + dt.date.today().isoformat() + ".md"
     changes_touched = any(c == "CHANGES.md" for c in changed)
     if changes_touched or (journal_rel in changed):
